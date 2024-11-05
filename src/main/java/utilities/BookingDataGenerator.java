@@ -3,6 +3,7 @@ package utilities;
 import com.github.javafaker.Faker;
 import models.BookingDates;
 import models.BookingDetails;
+import models.partialBookingDetails;
 
 import java.text.SimpleDateFormat;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +28,14 @@ public class BookingDataGenerator
                 .depositPaid(faker.bool().bool())
                 .bookingDates(dates)
                 .additionalNeeds("Breakfast")
+                .build();
+    }
+
+    public static partialBookingDetails partialGenerateBookingDetails()
+    {
+        return partialBookingDetails.builder()
+                .firstName(faker.name().firstName())
+                .lastName(faker.name().lastName())
                 .build();
     }
 }

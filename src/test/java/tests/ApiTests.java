@@ -5,6 +5,7 @@ import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import models.AuthToken;
 import models.BookingDetails;
+import models.partialBookingDetails;
 import org.testng.Assert;
 import org.testng.ITestContext;
 import org.testng.annotations.Test;
@@ -22,7 +23,6 @@ public class ApiTests
     public void authCreateToken(ITestContext context)
     {
         RestAssured.baseURI = bookingBaseUrl;
-        String token;
 
         AuthToken requestBody = AuthToken.builder()
                 .username(username)
@@ -38,9 +38,8 @@ public class ApiTests
 
         Assert.assertEquals(response.getStatusCode(), 200, "Bad request" + response.asString());
 
-        token = response.jsonPath().getString("token");
 
-        context.setAttribute("token", token);
+        context.setAttribute("token", response.jsonPath().getString("token"));
 
     }
 
@@ -77,16 +76,14 @@ public class ApiTests
 
 
         context.setAttribute("bookingid", response.jsonPath().getInt("bookingid"));
-
         context.setAttribute("firstname", bookingDetails.getFirstName());
-
         context.setAttribute("lastname", bookingDetails.getLastName());
-
         context.setAttribute("checkin", bookingDetails.getBookingDates().getCheckin());
-
         context.setAttribute("checkout", bookingDetails.getBookingDates().getCheckout());
 
+
         System.out.println("(createBooking method) bookingid : " + response.jsonPath().getInt("bookingid"));
+        System.out.println("Response: " + response.asString());
     }
 
 
@@ -94,7 +91,6 @@ public class ApiTests
     public void getBookingIds(ITestContext context)
     {
         RestAssured.baseURI = bookingBaseUrl;
-
         
         Response response = RestAssured
                 .given()
@@ -108,10 +104,10 @@ public class ApiTests
 
         Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
 
-        //System.out.println("Response: " + response.asString());
+        System.out.println("Response: " + response.asString());
     }
 
-    @Test(dependsOnMethods = "createBooking",priority = 3)
+    @Test(dependsOnMethods = "createBooking",priority = 4)
     public void getBookingIdsNamesFilter(ITestContext context)
     {
         RestAssured.baseURI = bookingBaseUrl;
@@ -134,7 +130,7 @@ public class ApiTests
         System.out.println("Response: " + response.asString());
     }
 
-    @Test(dependsOnMethods = "createBooking",priority = 3)
+    @Test(dependsOnMethods = "createBooking",priority = 5)
     public void getBookingIdsDatesFilter(ITestContext context)
     {
         RestAssured.baseURI = bookingBaseUrl;
@@ -157,8 +153,35 @@ public class ApiTests
         System.out.println("Response: " + response.asString());
     }
 
+    @Test(dependsOnMethods = {"createBooking", "authCreateToken"}, priority = 6)
+    public void updateBooking(ITestContext context)
+    {
+        RestAssured.baseURI = bookingBaseUrl;
+        int bookingid = (int) context.getAttribute("bookingid");
+        String token = (String) context.getAttribute("token");
 
-    @Test(dependsOnMethods = "createBooking",priority = 4)
+        BookingDetails bookingDetails = BookingDataGenerator.generateBookingDetails();
+
+
+        Response response = RestAssured
+                .given()
+                .cookie("token", token)
+                .contentType(ContentType.JSON)
+                .body(bookingDetails)
+                .when()
+                .put("/booking/{bookid}", bookingid)
+                .then()
+                .assertThat()
+                .body(matchesJsonSchemaInClasspath("updateBooking-schema.json"))
+                .extract().response();
+
+        Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
+
+        System.out.println("response : " + response.asString());
+    }
+
+
+    @Test(dependsOnMethods = {"createBooking", "authCreateToken", "updateBooking"},priority = 7)
     public void getBooking(ITestContext context)
     {
         RestAssured.baseURI = bookingBaseUrl;
@@ -174,11 +197,68 @@ public class ApiTests
                 .get("/booking/{bookid}", bookingid)
                 .then()
                 .assertThat()
-//                .body(matchesJsonSchemaInClasspath("getBookingIds-schema.json"))
+                .body(matchesJsonSchemaInClasspath("getBooking-schema.json"))
                 .extract().response();
+
+        Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
 
         System.out.println("response : " + response.asString());
     }
+
+    @Test(dependsOnMethods = {"createBooking", "authCreateToken"}, priority = 8)
+    public void partialUpdateBooking(ITestContext context)
+    {
+        RestAssured.baseURI = bookingBaseUrl;
+        int bookingid = (int) context.getAttribute("bookingid");
+        String token = (String) context.getAttribute("token");
+
+        partialBookingDetails bookingDetails = BookingDataGenerator.partialGenerateBookingDetails();
+
+
+        Response response = RestAssured
+                .given()
+                .cookie("token", token)
+                .contentType(ContentType.JSON)
+                .body(bookingDetails)
+                .when()
+                .patch("/booking/{bookid}", bookingid)
+                .then()
+//                .assertThat()
+//                .body(matchesJsonSchemaInClasspath("updateBooking-schema.json"))
+                .extract().response();
+
+//        Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
+
+        System.out.println("response : " + response.asString());
+        System.out.println("status code : " + response.getStatusCode());
+    }
+
+    @Test(dependsOnMethods = {"createBooking", "authCreateToken"},priority = 8)
+    public void deleteBooking(ITestContext context)
+    {
+        RestAssured.baseURI = bookingBaseUrl;
+        int bookingid = (int) context.getAttribute("bookingid");
+        String token = (String) context.getAttribute("token");
+
+        System.out.println("bookingid : " + bookingid);
+
+
+        Response response = RestAssured
+                .given()
+                .cookie("token", token)
+                .contentType(ContentType.JSON)
+                .when()
+                .delete("/booking/{bookid}", bookingid)
+                .then()
+//                .assertThat()
+//                .body(matchesJsonSchemaInClasspath("getBooking-schema.json"))
+                .extract().response();
+
+        Assert.assertEquals(response.getStatusCode(), 201, "Bad request: " + response.asString());
+
+        System.out.println("response : " + response.asString());
+    }
+
 
 
 
