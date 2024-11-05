@@ -1,7 +1,8 @@
 package utilities;
 
 import com.github.javafaker.Faker;
-import models.createBookingDetails;
+import models.BookingDates;
+import models.BookingDetails;
 
 import java.text.SimpleDateFormat;
 import java.util.concurrent.TimeUnit;
@@ -10,30 +11,22 @@ public class BookingDataGenerator
 {
     private static final Faker faker = new Faker();
 
-    public static createBookingDetails generateBookingDetails()
+    public static BookingDetails generateBookingDetails()
     {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
-        String firstname = faker.name().firstName();
-        String lastname = faker.name().lastName();
-        int totalprice = faker.number().numberBetween(50, 500);
-        boolean depositpaid = faker.bool().bool();
-        String checkin = sdf.format(faker.date().birthday());
-        String checkout = sdf.format(faker.date().future(10, TimeUnit.DAYS));
-        String additionalneeds = "Breakfast";
+        BookingDates dates = BookingDates.builder()
+                .checkin(sdf.format(faker.date().birthday()))
+                .checkout(sdf.format(faker.date().future(10, TimeUnit.DAYS)))
+                .build();
 
-        createBookingDetails bookingDetails = new createBookingDetails();
-        bookingDetails.setFirstName(firstname);
-        bookingDetails.setLastName(lastname);
-        bookingDetails.setTotalPrice(totalprice);
-        bookingDetails.setDepositPaid(depositpaid);
-        bookingDetails.setAdditionalNeeds(additionalneeds);
-
-        createBookingDetails.BookingDates bookingDates = new createBookingDetails.BookingDates();
-        bookingDates.setCheckin(checkin);
-        bookingDates.setCheckout(checkout);
-        bookingDetails.setBookingDates(bookingDates);
-
-        return bookingDetails;
+        return BookingDetails.builder()
+                .firstName(faker.name().firstName())
+                .lastName(faker.name().lastName())
+                .totalPrice(faker.number().numberBetween(50, 500))
+                .depositPaid(faker.bool().bool())
+                .bookingDates(dates)
+                .additionalNeeds("Breakfast")
+                .build();
     }
 }

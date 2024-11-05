@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
-import models.createBookingDetails;
+import models.BookingDetails;
 import org.testng.Assert;
 import org.testng.ITestContext;
 import org.testng.annotations.Test;
@@ -78,25 +78,12 @@ public class ApiTests
     }
 
 
-    @Test(invocationCount = 1)
+    @Test(invocationCount = 5)
     public void createBooking()
     {
         RestAssured.baseURI = bookingBaseUrl;
 
-//        // SET JSON KEYS
-//        createBookingDetails bookingDetails = new createBookingDetails();
-//        bookingDetails.setFirstName(firstname);
-//        bookingDetails.setLastName(lastname);
-//        bookingDetails.setTotalPrice(totalprice);
-//        bookingDetails.setDepositPaid(depositpaid);
-//        bookingDetails.setAdditionalNeeds(additionalneeds);
-//
-//        createBookingDetails.BookingDates bookingDates = new createBookingDetails.BookingDates();
-//        bookingDates.setCheckin(checkin);
-//        bookingDates.setCheckout(checkout);
-//        bookingDetails.setBookingDates(bookingDates);
-
-        createBookingDetails bookingDetails = BookingDataGenerator.generateBookingDetails();
+        BookingDetails bookingDetails = BookingDataGenerator.generateBookingDetails();
 
         Response response = RestAssured
                 .given()
@@ -112,12 +99,12 @@ public class ApiTests
 
         Assert.assertEquals(response.getStatusCode(), 200, "Booking creation failed for " + bookingDetails.getFirstName() + " " + bookingDetails.getLastName() + "!");
 
-        System.out.println("Response: " + response.asString());
+//        System.out.println("Response: " + response.asString());
 
         Assert.assertEquals(response.jsonPath().getString("booking.firstname"), bookingDetails.getFirstName(), "firstName");
         Assert.assertEquals(response.jsonPath().getString("booking.lastname"), bookingDetails.getLastName(), "lastName");
         Assert.assertEquals(response.jsonPath().getInt("booking.totalprice"), bookingDetails.getTotalPrice(), "total Price");
-//        Assert.assertEquals(response.jsonPath().getBoolean("booking.depositpaid"), bookingDetails.getDepositPaid());
+        Assert.assertEquals(response.jsonPath().getBoolean("booking.depositpaid"), bookingDetails.isDepositPaid());
         Assert.assertEquals(response.jsonPath().getString("booking.bookingdates.checkin"), bookingDetails.getBookingDates().getCheckin(), "checkin");
         Assert.assertEquals(response.jsonPath().getString("booking.bookingdates.checkout"), bookingDetails.getBookingDates().getCheckout(),"checkout");
         Assert.assertEquals(response.jsonPath().getString("booking.additionalneeds"), bookingDetails.getAdditionalNeeds(), "additional Needs");
