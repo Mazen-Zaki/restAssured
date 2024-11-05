@@ -12,7 +12,7 @@ public class Configurations
 
 
     public static String createTokenEndpoint = "/auth";
-    public static String getBookingIdsEndpoint = "/booking";
+    public static String getBookingEndpoint = "/booking";
     public static String createBookingEndpoint = "/booking";
 
 
