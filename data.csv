@@ -1,0 +1,11 @@
+firstname,lastname,totalprice,depositpaid,checkin,checkout,additionalneeds
+John,Doe,150,true,2024-01-01,2024-01-10,Breakfast
+Jane,Smith,200,false,2024-02-01,2024-02-10,Dinner
+Bob,Johnson,300,true,2024-03-01,2024-03-10,Lunch
+Alice,Williams,250,true,2024-04-01,2024-04-10,WiFi
+Chris,Brown,180,false,2024-05-01,2024-05-10,Parking
+Emma,Davis,220,true,2024-06-01,2024-06-10,Pool Access
+Michael,Garcia,330,false,2024-07-01,2024-07-10,Room Service
+Sarah,Martinez,260,true,2024-08-01,2024-08-10,Gym Access
+David,Lopez,190,false,2024-09-01,2024-09-10,Airport Shuttle
+Sophia,Wilson,210,true,2024-10-01,2024-10-10,Extra Towels
