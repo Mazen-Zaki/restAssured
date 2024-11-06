@@ -35,13 +35,17 @@ public class ApiTests
                 .contentType(ContentType.JSON)
                 .body(requestBody)
                 .when()
-                .post(createTokenEndpoint);
+                .post(createTokenEndpoint)
+                .then()
+                .assertThat()
+                .body(matchesJsonSchemaInClasspath("getAuthToken-schema.json"))
+                .statusCode(200)
+                .extract()
+                .response();
 
-        Assert.assertEquals(response.getStatusCode(), 200, "Bad request" + response.asString());
-
+//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
 
         context.setAttribute("token", response.jsonPath().getString("token"));
-
     }
 
     @Test(invocationCount = 1, priority = 2)
@@ -60,21 +64,25 @@ public class ApiTests
                 .then()
                 .assertThat()
                 .body(matchesJsonSchemaInClasspath("createBooking-schema.json"))
+                .statusCode(200)
+                .body("booking.firstname", equalTo(bookingDetails.getFirstName()))
+                .body("booking.lastname", equalTo(bookingDetails.getLastName()))
+                .body("booking.totalprice", equalTo(bookingDetails.getTotalPrice()))
+                .body("booking.depositpaid", equalTo(bookingDetails.isDepositPaid()))
+                .body("booking.bookingdates.checkin", equalTo(bookingDetails.getBookingDates().getCheckin()))
+                .body("booking.bookingdates.checkout", equalTo(bookingDetails.getBookingDates().getCheckout()))
+                .body("booking.additionalneeds", equalTo(bookingDetails.getAdditionalNeeds()))
                 .extract()
                 .response();
 
-        Assert.assertEquals(response.getStatusCode(), 200, "Booking creation failed for " + bookingDetails.getFirstName() + " " + bookingDetails.getLastName() + "!");
-
-//        System.out.println("Response: " + response.asString());
-
-        Assert.assertEquals(response.jsonPath().getString("booking.firstname"), bookingDetails.getFirstName(), "firstName");
-        Assert.assertEquals(response.jsonPath().getString("booking.lastname"), bookingDetails.getLastName(), "lastName");
-        Assert.assertEquals(response.jsonPath().getInt("booking.totalprice"), bookingDetails.getTotalPrice(), "total Price");
-        Assert.assertEquals(response.jsonPath().getBoolean("booking.depositpaid"), bookingDetails.isDepositPaid(), "deposit Paid");
-        Assert.assertEquals(response.jsonPath().getString("booking.bookingdates.checkin"), bookingDetails.getBookingDates().getCheckin(), "checkin");
-        Assert.assertEquals(response.jsonPath().getString("booking.bookingdates.checkout"), bookingDetails.getBookingDates().getCheckout(),"checkout");
-        Assert.assertEquals(response.jsonPath().getString("booking.additionalneeds"), bookingDetails.getAdditionalNeeds(), "additional Needs");
-
+//        Assert.assertEquals(response.getStatusCode(), 200, "Booking creation failed for " + bookingDetails.getFirstName() + " " + bookingDetails.getLastName() + "!");
+//        Assert.assertEquals(response.jsonPath().getString("booking.firstname"), bookingDetails.getFirstName(), "firstName");
+//        Assert.assertEquals(response.jsonPath().getString("booking.lastname"), bookingDetails.getLastName(), "lastName");
+//        Assert.assertEquals(response.jsonPath().getInt("booking.totalprice"), bookingDetails.getTotalPrice(), "total Price");
+//        Assert.assertEquals(response.jsonPath().getBoolean("booking.depositpaid"), bookingDetails.isDepositPaid(), "deposit Paid");
+//        Assert.assertEquals(response.jsonPath().getString("booking.bookingdates.checkin"), bookingDetails.getBookingDates().getCheckin(), "checkin");
+//        Assert.assertEquals(response.jsonPath().getString("booking.bookingdates.checkout"), bookingDetails.getBookingDates().getCheckout(),"checkout");
+//        Assert.assertEquals(response.jsonPath().getString("booking.additionalneeds"), bookingDetails.getAdditionalNeeds(), "additional Needs");
 
         context.setAttribute("bookingid", response.jsonPath().getInt("bookingid"));
         context.setAttribute("firstname", bookingDetails.getFirstName());
@@ -103,9 +111,10 @@ public class ApiTests
                 .then()
                 .assertThat()
                 .body(matchesJsonSchemaInClasspath("getBookingIds-schema.json"))
+                .statusCode(200)
                 .extract().response();
 
-        Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
+//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
 
         System.out.println("Response: " + response.asString());
     }
@@ -126,9 +135,10 @@ public class ApiTests
                 .then()
                 .assertThat()
                 .body(matchesJsonSchemaInClasspath("getBookingIds-schema.json"))
+                .statusCode(200)
                 .extract().response();
 
-        Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
+//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
 
         System.out.println("Response: " + response.asString());
     }
@@ -140,7 +150,6 @@ public class ApiTests
         String checkin = (String) context.getAttribute("checkin");
         String checkout = (String) context.getAttribute("checkout");
 
-
         Response response = RestAssured
                 .given()
                 .contentType(ContentType.JSON)
@@ -149,9 +158,10 @@ public class ApiTests
                 .then()
                 .assertThat()
                 .body(matchesJsonSchemaInClasspath("getBookingIds-schema.json"))
+                .statusCode(200)
                 .extract().response();
 
-        Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
+//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
 
         System.out.println("Response: " + response.asString());
     }
@@ -163,9 +173,7 @@ public class ApiTests
         int bookingid = (int) context.getAttribute("bookingid");
         String token = (String) context.getAttribute("token");
 
-
         BookingDetails bookingDetails = BookingDataGenerator.generateBookingDetails();
-
 
         Response response = RestAssured
                 .given()
@@ -177,11 +185,10 @@ public class ApiTests
                 .then()
                 .assertThat()
                 .body(matchesJsonSchemaInClasspath("updateBooking-schema.json"))
+                .statusCode(200)
                 .extract().response();
 
-        Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
-
-
+//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
 
         context.setAttribute("firstname", bookingDetails.getFirstName());
         context.setAttribute("lastname", bookingDetails.getLastName());
@@ -219,20 +226,24 @@ public class ApiTests
                 .then()
                 .assertThat()
                 .body(matchesJsonSchemaInClasspath("getBooking-schema.json"))
+                .statusCode(200)
+                .body("firstname", equalTo(firstname))
+                .body("lastname", equalTo(lastname))
+                .body("totalprice", equalTo(totalprice))
+                .body("depositpaid", equalTo(depositpaid))
+                .body("bookingdates.checkin", equalTo(checkin))
+                .body("bookingdates.checkout", equalTo(checkout))
+                .body("additionalneeds", equalTo(additionalneeds))
                 .extract().response();
 
-        Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
-
-        Assert.assertEquals(response.jsonPath().getString("firstname"), firstname, "firstName");
-        Assert.assertEquals(response.jsonPath().getString("lastname"), lastname, "lastName");
-        Assert.assertEquals(response.jsonPath().getInt("totalprice"), totalprice, "total Price");
-        Assert.assertEquals(response.jsonPath().getBoolean("depositpaid"), depositpaid, "deposit Paid");
-        Assert.assertEquals(response.jsonPath().getString("bookingdates.checkin"), checkin, "checkin");
-        Assert.assertEquals(response.jsonPath().getString("bookingdates.checkout"), checkout,"checkout");
-        Assert.assertEquals(response.jsonPath().getString("additionalneeds"), additionalneeds, "additional Needs");
-
-
-
+//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
+//        Assert.assertEquals(response.jsonPath().getString("firstname"), firstname, "firstName");
+//        Assert.assertEquals(response.jsonPath().getString("lastname"), lastname, "lastName");
+//        Assert.assertEquals(response.jsonPath().getInt("totalprice"), totalprice, "total Price");
+//        Assert.assertEquals(response.jsonPath().getBoolean("depositpaid"), depositpaid, "deposit Paid");
+//        Assert.assertEquals(response.jsonPath().getString("bookingdates.checkin"), checkin, "checkin");
+//        Assert.assertEquals(response.jsonPath().getString("bookingdates.checkout"), checkout,"checkout");
+//        Assert.assertEquals(response.jsonPath().getString("additionalneeds"), additionalneeds, "additional Needs");
 
         System.out.println("response : " + response.asString());
     }
@@ -257,12 +268,14 @@ public class ApiTests
                 .then()
                 .assertThat()
                 .body(matchesJsonSchemaInClasspath("updateBooking-schema.json"))
+                .statusCode(200)
+                .body("firstname",equalTo(bookingDetails.getFirstName()))
+                .body("lastname",equalTo(bookingDetails.getLastName()))
                 .extract().response();
 
-        Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
-
-        Assert.assertEquals(response.jsonPath().getString("firstname"), bookingDetails.getFirstName(), "firstName");
-        Assert.assertEquals(response.jsonPath().getString("lastname"), bookingDetails.getLastName(), "lastName");
+//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
+//        Assert.assertEquals(response.jsonPath().getString("firstname"), bookingDetails.getFirstName(), "firstName");
+//        Assert.assertEquals(response.jsonPath().getString("lastname"), bookingDetails.getLastName(), "lastName");
 
         System.out.println("response : " + response.asString());
         System.out.println("status code : " + response.getStatusCode());
@@ -277,7 +290,6 @@ public class ApiTests
 
         System.out.println("bookingid : " + bookingid);
 
-
         Response response = RestAssured
                 .given()
                 .cookie("token", token)
@@ -287,17 +299,11 @@ public class ApiTests
                 .then()
                 .assertThat()
                 .body(equalTo("Created"))
+                .statusCode(201)
                 .extract().response();
 
-        Assert.assertEquals(response.getStatusCode(), 201, "Bad request: " + response.asString());
+//        Assert.assertEquals(response.getStatusCode(), 201, "Unexpected status code. Response body: " + response.asString());
 
         System.out.println("response : " + response.asString());
     }
-
-
-
-
-
-
-
 }
