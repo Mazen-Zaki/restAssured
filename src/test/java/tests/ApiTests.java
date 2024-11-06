@@ -12,6 +12,7 @@ import org.testng.annotations.Test;
 import utilities.BookingDataGenerator;
 
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
+import static org.hamcrest.Matchers.equalTo;
 import static utilities.Configurations.*;
 
 
@@ -78,9 +79,11 @@ public class ApiTests
         context.setAttribute("bookingid", response.jsonPath().getInt("bookingid"));
         context.setAttribute("firstname", bookingDetails.getFirstName());
         context.setAttribute("lastname", bookingDetails.getLastName());
+        context.setAttribute("totalprice", bookingDetails.getTotalPrice());
+        context.setAttribute("depositpaid", bookingDetails.isDepositPaid());
         context.setAttribute("checkin", bookingDetails.getBookingDates().getCheckin());
         context.setAttribute("checkout", bookingDetails.getBookingDates().getCheckout());
-
+        context.setAttribute("additionalneeds", bookingDetails.getAdditionalNeeds());
 
         System.out.println("(createBooking method) bookingid : " + response.jsonPath().getInt("bookingid"));
         System.out.println("Response: " + response.asString());
@@ -160,6 +163,7 @@ public class ApiTests
         int bookingid = (int) context.getAttribute("bookingid");
         String token = (String) context.getAttribute("token");
 
+
         BookingDetails bookingDetails = BookingDataGenerator.generateBookingDetails();
 
 
@@ -177,6 +181,16 @@ public class ApiTests
 
         Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
 
+
+
+        context.setAttribute("firstname", bookingDetails.getFirstName());
+        context.setAttribute("lastname", bookingDetails.getLastName());
+        context.setAttribute("totalprice", bookingDetails.getTotalPrice());
+        context.setAttribute("depositpaid", bookingDetails.isDepositPaid());
+        context.setAttribute("checkin", bookingDetails.getBookingDates().getCheckin());
+        context.setAttribute("checkout", bookingDetails.getBookingDates().getCheckout());
+        context.setAttribute("additionalneeds", bookingDetails.getAdditionalNeeds());
+
         System.out.println("response : " + response.asString());
     }
 
@@ -186,6 +200,13 @@ public class ApiTests
     {
         RestAssured.baseURI = bookingBaseUrl;
         int bookingid = (int) context.getAttribute("bookingid");
+        String firstname = (String) context.getAttribute("firstname");
+        String lastname = (String) context.getAttribute("lastname");
+        int totalprice = (int) context.getAttribute("totalprice");
+        boolean depositpaid = (boolean) context.getAttribute("depositpaid");
+        String checkin = (String) context.getAttribute("checkin");
+        String checkout = (String) context.getAttribute("checkout");
+        String additionalneeds = (String) context.getAttribute("additionalneeds");
 
         System.out.println("bookingid : " + bookingid);
 
@@ -201,6 +222,17 @@ public class ApiTests
                 .extract().response();
 
         Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
+
+        Assert.assertEquals(response.jsonPath().getString("firstname"), firstname, "firstName");
+        Assert.assertEquals(response.jsonPath().getString("lastname"), lastname, "lastName");
+        Assert.assertEquals(response.jsonPath().getInt("totalprice"), totalprice, "total Price");
+        Assert.assertEquals(response.jsonPath().getBoolean("depositpaid"), depositpaid, "deposit Paid");
+        Assert.assertEquals(response.jsonPath().getString("bookingdates.checkin"), checkin, "checkin");
+        Assert.assertEquals(response.jsonPath().getString("bookingdates.checkout"), checkout,"checkout");
+        Assert.assertEquals(response.jsonPath().getString("additionalneeds"), additionalneeds, "additional Needs");
+
+
+
 
         System.out.println("response : " + response.asString());
     }
@@ -223,11 +255,14 @@ public class ApiTests
                 .when()
                 .patch("/booking/{bookid}", bookingid)
                 .then()
-//                .assertThat()
-//                .body(matchesJsonSchemaInClasspath("updateBooking-schema.json"))
+                .assertThat()
+                .body(matchesJsonSchemaInClasspath("updateBooking-schema.json"))
                 .extract().response();
 
-//        Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
+        Assert.assertEquals(response.getStatusCode(), 200, "Bad request: " + response.asString());
+
+        Assert.assertEquals(response.jsonPath().getString("firstname"), bookingDetails.getFirstName(), "firstName");
+        Assert.assertEquals(response.jsonPath().getString("lastname"), bookingDetails.getLastName(), "lastName");
 
         System.out.println("response : " + response.asString());
         System.out.println("status code : " + response.getStatusCode());
@@ -250,8 +285,8 @@ public class ApiTests
                 .when()
                 .delete("/booking/{bookid}", bookingid)
                 .then()
-//                .assertThat()
-//                .body(matchesJsonSchemaInClasspath("getBooking-schema.json"))
+                .assertThat()
+                .body(equalTo("Created"))
                 .extract().response();
 
         Assert.assertEquals(response.getStatusCode(), 201, "Bad request: " + response.asString());
