@@ -15,4 +15,12 @@ public class AuthToken
 
     @JsonSetter("password")
     private String password;
+
+    @Override
+    public String toString() {
+        return "AuthToken{" +
+                "username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                '}';
+    }
 }

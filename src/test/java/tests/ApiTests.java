@@ -1,11 +1,15 @@
 package tests;
 
+import base.BaseSuite;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import models.AuthToken;
 import models.BookingDetails;
+import models.BookingResponse;
 import models.partialBookingDetails;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.testng.Assert;
 import org.testng.ITestContext;
 import org.testng.annotations.Test;
@@ -17,18 +21,23 @@ import static utilities.Configurations.*;
 
 
 
-public class ApiTests
+public class ApiTests extends BaseSuite
 {
+
+    private static final Logger logger = LogManager.getLogger(ApiTests.class);
 
     @Test(priority = 1)
     public void authCreateToken(ITestContext context)
     {
-        RestAssured.baseURI = bookingBaseUrl;
+        logger.info("Auth - CreateToken - POST");
+        logger.info("API : https://restful-booker.herokuapp.com/auth");
 
         AuthToken requestBody = AuthToken.builder()
                 .username(username)
                 .password(password)
                 .build();
+
+        logger.info("Request Body : " + requestBody.toString());
 
         Response response = RestAssured
                 .given()
@@ -43,19 +52,23 @@ public class ApiTests
                 .extract()
                 .response();
 
-//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
+        logger.info("Response ({}) : {}",response.statusCode() , response.asString());
 
         context.setAttribute("token", response.jsonPath().getString("token"));
+        logger.info("token has been saved in the context");
     }
 
     @Test(invocationCount = 1, priority = 2)
     public void createBooking(ITestContext context)
     {
-        RestAssured.baseURI = bookingBaseUrl;
+        logger.info("Booking - CreateBooking - POST");
+        logger.info("API : https://restful-booker.herokuapp.com/booking");
 
         BookingDetails bookingDetails = BookingDataGenerator.generateBookingDetails();
 
-        Response response = RestAssured
+        logger.info("Request body : " + bookingDetails.toString());
+
+        BookingResponse actualRes = RestAssured
                 .given()
                 .contentType(ContentType.JSON)
                 .body(bookingDetails)
@@ -65,44 +78,24 @@ public class ApiTests
                 .assertThat()
                 .body(matchesJsonSchemaInClasspath("createBooking-schema.json"))
                 .statusCode(200)
-                .body("booking.firstname", equalTo(bookingDetails.getFirstName()))
-                .body("booking.lastname", equalTo(bookingDetails.getLastName()))
-                .body("booking.totalprice", equalTo(bookingDetails.getTotalPrice()))
-                .body("booking.depositpaid", equalTo(bookingDetails.isDepositPaid()))
-                .body("booking.bookingdates.checkin", equalTo(bookingDetails.getBookingDates().getCheckin()))
-                .body("booking.bookingdates.checkout", equalTo(bookingDetails.getBookingDates().getCheckout()))
-                .body("booking.additionalneeds", equalTo(bookingDetails.getAdditionalNeeds()))
                 .extract()
-                .response();
+                .as(BookingResponse.class);
 
-//        Assert.assertEquals(response.getStatusCode(), 200, "Booking creation failed for " + bookingDetails.getFirstName() + " " + bookingDetails.getLastName() + "!");
-//        Assert.assertEquals(response.jsonPath().getString("booking.firstname"), bookingDetails.getFirstName(), "firstName");
-//        Assert.assertEquals(response.jsonPath().getString("booking.lastname"), bookingDetails.getLastName(), "lastName");
-//        Assert.assertEquals(response.jsonPath().getInt("booking.totalprice"), bookingDetails.getTotalPrice(), "total Price");
-//        Assert.assertEquals(response.jsonPath().getBoolean("booking.depositpaid"), bookingDetails.isDepositPaid(), "deposit Paid");
-//        Assert.assertEquals(response.jsonPath().getString("booking.bookingdates.checkin"), bookingDetails.getBookingDates().getCheckin(), "checkin");
-//        Assert.assertEquals(response.jsonPath().getString("booking.bookingdates.checkout"), bookingDetails.getBookingDates().getCheckout(),"checkout");
-//        Assert.assertEquals(response.jsonPath().getString("booking.additionalneeds"), bookingDetails.getAdditionalNeeds(), "additional Needs");
+        logger.info("Response : {}" , actualRes.toString());
 
-        context.setAttribute("bookingid", response.jsonPath().getInt("bookingid"));
-        context.setAttribute("firstname", bookingDetails.getFirstName());
-        context.setAttribute("lastname", bookingDetails.getLastName());
-        context.setAttribute("totalprice", bookingDetails.getTotalPrice());
-        context.setAttribute("depositpaid", bookingDetails.isDepositPaid());
-        context.setAttribute("checkin", bookingDetails.getBookingDates().getCheckin());
-        context.setAttribute("checkout", bookingDetails.getBookingDates().getCheckout());
-        context.setAttribute("additionalneeds", bookingDetails.getAdditionalNeeds());
+        Assert.assertTrue(actualRes.getBookingDetails().equals(bookingDetails), "mismatch");
 
-        System.out.println("(createBooking method) bookingid : " + response.jsonPath().getInt("bookingid"));
-        System.out.println("Response: " + response.asString());
+        context.setAttribute("res",actualRes );
+        logger.info("actualRes has been saved in the context");
     }
 
 
     @Test(priority = 3)
-    public void getBookingIds(ITestContext context)
+    public void getBookingIds()
     {
-        RestAssured.baseURI = bookingBaseUrl;
-        
+        logger.info("Booking - GetBookingIds - All IDs - GET");
+        logger.info("API : https://restful-booker.herokuapp.com/booking");
+
         Response response = RestAssured
                 .given()
                 .contentType(ContentType.JSON)
@@ -114,18 +107,21 @@ public class ApiTests
                 .statusCode(200)
                 .extract().response();
 
-//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
-
-        System.out.println("Response: " + response.asString());
+        logger.info("Response : {}" , response.asString());
     }
 
     @Test(dependsOnMethods = "createBooking",priority = 4)
     public void getBookingIdsNamesFilter(ITestContext context)
     {
-        RestAssured.baseURI = bookingBaseUrl;
-        String firstname = (String) context.getAttribute("firstname");
-        String lastname = (String) context.getAttribute("lastname");
+        logger.info("Booking - GetBookingIds - Filter by name - GET");
+        logger.info("API : https://restful-booker.herokuapp.com/booking");
 
+        BookingResponse expectedRes = (BookingResponse) context.getAttribute("res");
+
+        String firstname = expectedRes.getBookingDetails().getFirstName();
+        String lastname = expectedRes.getBookingDetails().getLastName();
+
+        logger.info("?firstname={}&lastname={}",firstname,lastname);
 
         Response response = RestAssured
                 .given()
@@ -138,172 +134,154 @@ public class ApiTests
                 .statusCode(200)
                 .extract().response();
 
-//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
+        logger.info("Response : {}" , response.asString());
 
-        System.out.println("Response: " + response.asString());
     }
 
     @Test(dependsOnMethods = "createBooking",priority = 5)
     public void getBookingIdsDatesFilter(ITestContext context)
     {
-        RestAssured.baseURI = bookingBaseUrl;
-        String checkin = (String) context.getAttribute("checkin");
-        String checkout = (String) context.getAttribute("checkout");
+        logger.info("Booking - GetBookingIds - Filter by dates - GET");
+        logger.info("API : https://restful-booker.herokuapp.com/booking");
+
+        BookingResponse expectedRes = (BookingResponse) context.getAttribute("res");
+
+        String checkin = expectedRes.getBookingDetails().getBookingDates().getCheckin();
+        String checkout = expectedRes.getBookingDetails().getBookingDates().getCheckout();
+
+        logger.info("?checkin={}&checkout={}",checkin,checkout);
 
         Response response = RestAssured
                 .given()
                 .contentType(ContentType.JSON)
                 .when()
-                .get(getBookingEndpoint + "?firstname={checkin}&lastname={checkout}",checkin,checkout)
+                .get(getBookingEndpoint + "?checkin={checkin}&checkout={checkout}",checkin,checkout)
                 .then()
                 .assertThat()
                 .body(matchesJsonSchemaInClasspath("getBookingIds-schema.json"))
                 .statusCode(200)
                 .extract().response();
 
-//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
-
-        System.out.println("Response: " + response.asString());
+        logger.info("Response : {}" , response.asString());
     }
 
     @Test(dependsOnMethods = {"createBooking", "authCreateToken"}, priority = 6)
     public void updateBooking(ITestContext context)
     {
-        RestAssured.baseURI = bookingBaseUrl;
-        int bookingid = (int) context.getAttribute("bookingid");
+        logger.info("Booking - UpdateBooking - PUT");
+        logger.info("API : https://restful-booker.herokuapp.com/booking/:id");
+
+        BookingResponse bookingResponse = (BookingResponse) context.getAttribute("res");
         String token = (String) context.getAttribute("token");
 
-        BookingDetails bookingDetails = BookingDataGenerator.generateBookingDetails();
+        bookingResponse.setBookingDetails(BookingDataGenerator.generateBookingDetails());
 
-        Response response = RestAssured
+        BookingDetails actualRes = RestAssured
                 .given()
                 .cookie("token", token)
                 .contentType(ContentType.JSON)
-                .body(bookingDetails)
+                .body(bookingResponse.getBookingDetails())
                 .when()
-                .put("/booking/{bookid}", bookingid)
+                .put("/booking/{bookid}", bookingResponse.getBookingId())
                 .then()
                 .assertThat()
                 .body(matchesJsonSchemaInClasspath("updateBooking-schema.json"))
                 .statusCode(200)
-                .extract().response();
+                .extract()
+                .as(BookingDetails.class);
 
-//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
+        logger.info("Response : {}" , actualRes.toString());
 
-        context.setAttribute("firstname", bookingDetails.getFirstName());
-        context.setAttribute("lastname", bookingDetails.getLastName());
-        context.setAttribute("totalprice", bookingDetails.getTotalPrice());
-        context.setAttribute("depositpaid", bookingDetails.isDepositPaid());
-        context.setAttribute("checkin", bookingDetails.getBookingDates().getCheckin());
-        context.setAttribute("checkout", bookingDetails.getBookingDates().getCheckout());
-        context.setAttribute("additionalneeds", bookingDetails.getAdditionalNeeds());
+        Assert.assertTrue(actualRes.equals(bookingResponse.getBookingDetails()));
 
-        System.out.println("response : " + response.asString());
+        context.setAttribute("res", bookingResponse);
+        logger.info("actualRes has been saved in the context");
     }
 
 
-    @Test(dependsOnMethods = {"createBooking", "authCreateToken", "updateBooking"},priority = 7)
+    @Test(dependsOnMethods = {"createBooking", "authCreateToken"},priority = 7)
     public void getBooking(ITestContext context)
     {
-        RestAssured.baseURI = bookingBaseUrl;
-        int bookingid = (int) context.getAttribute("bookingid");
-        String firstname = (String) context.getAttribute("firstname");
-        String lastname = (String) context.getAttribute("lastname");
-        int totalprice = (int) context.getAttribute("totalprice");
-        boolean depositpaid = (boolean) context.getAttribute("depositpaid");
-        String checkin = (String) context.getAttribute("checkin");
-        String checkout = (String) context.getAttribute("checkout");
-        String additionalneeds = (String) context.getAttribute("additionalneeds");
+        logger.info("Booking - GetBooking - GET");
+        logger.info("API : https://restful-booker.herokuapp.com/booking/:id");
 
-        System.out.println("bookingid : " + bookingid);
+        BookingResponse expectedRes = (BookingResponse) context.getAttribute("res");
 
-
-        Response response = RestAssured
+        BookingDetails actualRes = RestAssured
                 .given()
                 .contentType(ContentType.JSON)
                 .when()
-                .get("/booking/{bookid}", bookingid)
+                .get("/booking/{bookid}", expectedRes.getBookingId())
                 .then()
                 .assertThat()
                 .body(matchesJsonSchemaInClasspath("getBooking-schema.json"))
                 .statusCode(200)
-                .body("firstname", equalTo(firstname))
-                .body("lastname", equalTo(lastname))
-                .body("totalprice", equalTo(totalprice))
-                .body("depositpaid", equalTo(depositpaid))
-                .body("bookingdates.checkin", equalTo(checkin))
-                .body("bookingdates.checkout", equalTo(checkout))
-                .body("additionalneeds", equalTo(additionalneeds))
-                .extract().response();
+                .extract()
+                .as(BookingDetails.class);
 
-//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
-//        Assert.assertEquals(response.jsonPath().getString("firstname"), firstname, "firstName");
-//        Assert.assertEquals(response.jsonPath().getString("lastname"), lastname, "lastName");
-//        Assert.assertEquals(response.jsonPath().getInt("totalprice"), totalprice, "total Price");
-//        Assert.assertEquals(response.jsonPath().getBoolean("depositpaid"), depositpaid, "deposit Paid");
-//        Assert.assertEquals(response.jsonPath().getString("bookingdates.checkin"), checkin, "checkin");
-//        Assert.assertEquals(response.jsonPath().getString("bookingdates.checkout"), checkout,"checkout");
-//        Assert.assertEquals(response.jsonPath().getString("additionalneeds"), additionalneeds, "additional Needs");
+        Assert.assertTrue(expectedRes.getBookingDetails().equals(actualRes));
 
-        System.out.println("response : " + response.asString());
+        logger.info("Response : {}" , actualRes.toString());
+
     }
 
     @Test(dependsOnMethods = {"createBooking", "authCreateToken"}, priority = 8)
     public void partialUpdateBooking(ITestContext context)
     {
-        RestAssured.baseURI = bookingBaseUrl;
-        int bookingid = (int) context.getAttribute("bookingid");
+        logger.info("Booking - PartialUpdateBooking - PUT");
+        logger.info("API : https://restful-booker.herokuapp.com/booking/:id");
+
+        BookingResponse bookingResponse = (BookingResponse) context.getAttribute("res");
         String token = (String) context.getAttribute("token");
 
         partialBookingDetails bookingDetails = BookingDataGenerator.partialGenerateBookingDetails();
 
+        bookingResponse.getBookingDetails().setFirstName(bookingDetails.getFirstName());
+        bookingResponse.getBookingDetails().setLastName(bookingDetails.getLastName());
 
-        Response response = RestAssured
+        BookingDetails actualRes = RestAssured
                 .given()
                 .cookie("token", token)
                 .contentType(ContentType.JSON)
                 .body(bookingDetails)
                 .when()
-                .patch("/booking/{bookid}", bookingid)
+                .patch("/booking/{bookid}", bookingResponse.getBookingId())
                 .then()
                 .assertThat()
                 .body(matchesJsonSchemaInClasspath("updateBooking-schema.json"))
                 .statusCode(200)
-                .body("firstname",equalTo(bookingDetails.getFirstName()))
-                .body("lastname",equalTo(bookingDetails.getLastName()))
-                .extract().response();
+                .extract()
+                .as(BookingDetails.class);
 
-//        Assert.assertEquals(response.getStatusCode(), 200, "Unexpected status code. Response body: " + response.asString());
-//        Assert.assertEquals(response.jsonPath().getString("firstname"), bookingDetails.getFirstName(), "firstName");
-//        Assert.assertEquals(response.jsonPath().getString("lastname"), bookingDetails.getLastName(), "lastName");
+        logger.info("Response : {}" , actualRes.toString());
 
-        System.out.println("response : " + response.asString());
-        System.out.println("status code : " + response.getStatusCode());
+        Assert.assertTrue(actualRes.equals(bookingResponse.getBookingDetails()));
+
+        context.setAttribute("res", bookingResponse);
+        logger.info("actualRes has been saved in the context");
     }
 
     @Test(dependsOnMethods = {"createBooking", "authCreateToken"},priority = 8)
     public void deleteBooking(ITestContext context)
     {
-        RestAssured.baseURI = bookingBaseUrl;
-        int bookingid = (int) context.getAttribute("bookingid");
-        String token = (String) context.getAttribute("token");
+        logger.info("Booking - PartialUpdateBooking - PUT");
+        logger.info("API : https://restful-booker.herokuapp.com/booking/:id");
 
-        System.out.println("bookingid : " + bookingid);
+        BookingResponse bookingResponse = (BookingResponse) context.getAttribute("res");
+        String token = (String) context.getAttribute("token");
 
         Response response = RestAssured
                 .given()
                 .cookie("token", token)
                 .contentType(ContentType.JSON)
                 .when()
-                .delete("/booking/{bookid}", bookingid)
+                .delete("/booking/{bookid}", bookingResponse.getBookingId())
                 .then()
                 .assertThat()
                 .body(equalTo("Created"))
                 .statusCode(201)
                 .extract().response();
 
-//        Assert.assertEquals(response.getStatusCode(), 201, "Unexpected status code. Response body: " + response.asString());
-
-        System.out.println("response : " + response.asString());
+        logger.info("Response ({}) : {}",response.statusCode() , response.asString());
     }
 }
